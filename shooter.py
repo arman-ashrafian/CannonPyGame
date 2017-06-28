@@ -1,6 +1,7 @@
 import pygame as pg
 import sys
 import math
+import random
 
 pg.init()
 
@@ -12,6 +13,7 @@ RED   = (255, 0, 0)
 BLUE  = (0, 0, 255)
 LGREY = (150,150,150)
 
+colorList = [BLACK, GREEN, RED, BLUE]
 
 WIDTH = 800
 HEIGHT = 800
@@ -24,8 +26,7 @@ pg.display.set_caption("Boom Pow")
 
 # Set up
 clock = pg.time.Clock()
-fps = 65
-done = False
+fps = 80
 
 fontObj = pg.font.SysFont('monospace', 32, bold=True)
 fontObj2 = pg.font.SysFont('monospace', 18, bold=True)
@@ -33,10 +34,13 @@ fontObj2 = pg.font.SysFont('monospace', 18, bold=True)
 class Ball:
 
     speedY = 0
+    speedX = 0
+
+    printOnce = False
 
     def __init__(self, angleShot, speed, color, pos):
         self.angleShot = angleShot
-        self.speed = speed
+        self.speedX = speed
         self.speedY = speed
         self.color = color
         self.x = pos[0]
@@ -44,15 +48,20 @@ class Ball:
 
 
     def updateBall(self):
-        vx0 = self.speed * math.cos(math.radians(90 + self.angleShot))
+        vx0 = self.speedX * math.cos(math.radians(90 + self.angleShot))
         vy0 = self.speedY * math.sin(math.radians(90 + self.angleShot))
 
         self.x = int(self.x + vx0)
         self.y = int(self.y - vy0)
-
-        self.speedY += -.3
+        self.speedY -= .3
 
         pg.draw.circle(screen, self.color, (self.x, self.y), 20,0)
+
+    def checkHit(self, target):
+        if((self.x > target.x - target.radius and self.x < target.x + target.radius) and
+           (self.y > target.y - target.radius and self.y < target.y + target.radius)):
+           target.hit = True
+
 
 class Cannon:
     xTop = 0
@@ -84,8 +93,20 @@ class Cannon:
         self.xTop = rotRect.center[0] + (20 * math.cos(math.radians(90 + cannonDegrees)))
         self.yTop = rotRect.center[1] - (20 * math.sin(math.radians(90 + cannonDegrees)))
 
+class Target:
+    hit = False
 
+    def __init__(self):
+        self.x = random.randint(150,650)
+        self.y = random.randint(150,600)
+        self.radius = 50
+        self.hit = False
 
+    def show(self):
+        pg.draw.circle(screen, RED, (self.x, self.y), self.radius,0)
+
+    def hit(self):
+        self.hit = True
 
 def gameIntro():
     global screen
@@ -93,7 +114,7 @@ def gameIntro():
     buttonPressed = False
     screen.fill(LGREY)
 
-    introText = "Shoot Some Shit Up"
+    introText = "Shoot Stuff"
     pressText = "Press any key to play"
 
     while not buttonPressed:
@@ -120,13 +141,14 @@ def gameIntro():
 
 
 def gameLoop():
-    global done
+    done = False
 
     cannonAngle = 0
     cannonAngleChange = 0
     ballsShot = []
 
     cannon = Cannon()
+    target = Target()
 
     #----Main Loop----#
     while not done:
@@ -138,17 +160,20 @@ def gameLoop():
                 done = True
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_RIGHT:
-                    cannonAngleChange = -2
+                    cannonAngleChange = -1
                 if event.key == pg.K_LEFT:
-                    cannonAngleChange = 2
+                    cannonAngleChange = 1
                 if event.key == pg.K_SPACE:
-                    newBall = Ball(cannonAngle, 18, BLUE, (cannon.xTop, cannon.yTop))
+                    randomIndex = random.randint(0, 3)
+                    newBall = Ball(cannonAngle, 18, colorList[randomIndex], (cannon.xTop, cannon.yTop))
                     ballsShot.append(newBall)
             if event.type == pg.KEYUP:
                 cannonAngleChange = 0
 
 
         # --- Game Logic
+
+        # cannon boundries
         if(cannonAngle + cannonAngleChange <= 70 and
            cannonAngle + cannonAngleChange >= -70):
            cannonAngle += cannonAngleChange
@@ -156,15 +181,21 @@ def gameLoop():
 
         # --- Drawing
         cannon.drawCannon(cannonAngle)
-
+        target.show()
 
         for b in ballsShot:
-            if(b.x > WIDTH or b.x < 0 or b.y < 0 or b.y > HEIGHT):
-                del b
+            if(b.x > WIDTH + 30 or b.x < 0 - 30 or b.y < 0 or b.y > HEIGHT):
+                ballsShot.remove(b)
             else:
                 b.updateBall()
 
+            b.checkHit(target)
+
+            if(target.hit):
+                target = Target()
+
         # --- update screen
+        print(len(ballsShot))
         pg.display.flip()
         clock.tick(fps)
 
@@ -172,3 +203,4 @@ def gameLoop():
 if __name__ == '__main__':
     gameIntro()
     gameLoop()
+    pg.quit()
