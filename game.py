@@ -5,6 +5,9 @@ import random
 
 pg.init()
 
+# holds x, y, angle
+hitArray = [[], [], []]
+
 #Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -32,6 +35,7 @@ fontObj = pg.font.SysFont('monospace', 32, bold=True)
 fontObj2 = pg.font.SysFont('monospace', 18, bold=True)
 
 class Ball:
+    global hitArray
 
     speedY = 0
     speedX = 0
@@ -57,11 +61,13 @@ class Ball:
 
         pg.draw.circle(screen, self.color, (self.x, self.y), 20,0)
 
-    def checkHit(self, target):
+    def checkHit(self, target, cannonAngle):
         if((self.x > target.x - target.radius and self.x < target.x + target.radius) and
            (self.y > target.y - target.radius and self.y < target.y + target.radius)):
            target.hit = True
-
+           hitArray[0].append(target.x)
+           hitArray[1].append(target.y)
+           hitArray[2].append(cannonAngle)
 
 class Cannon:
     xTop = 0
@@ -98,7 +104,7 @@ class Target:
 
     def __init__(self):
         self.x = random.randint(150,650)
-        self.y = random.randint(150,600)
+        self.y = random.randint(150,550)
         self.radius = 50
         self.hit = False
 
@@ -150,6 +156,8 @@ def gameLoop():
     cannon = Cannon()
     target = Target()
 
+    shotDisabled = False
+
     #----Main Loop----#
     while not done:
         # clear screen
@@ -164,9 +172,10 @@ def gameLoop():
                 if event.key == pg.K_LEFT:
                     cannonAngleChange = 1
                 if event.key == pg.K_SPACE:
-                    randomIndex = random.randint(0, 3)
-                    newBall = Ball(cannonAngle, 18, colorList[randomIndex], (cannon.xTop, cannon.yTop))
-                    ballsShot.append(newBall)
+                    if not shotDisabled:
+                        randomIndex = random.randint(0, 3)
+                        newBall = Ball(cannonAngle, 18, colorList[randomIndex], (cannon.xTop, cannon.yTop))
+                        ballsShot.append(newBall)
             if event.type == pg.KEYUP:
                 cannonAngleChange = 0
 
@@ -186,21 +195,30 @@ def gameLoop():
         for b in ballsShot:
             if(b.x > WIDTH + 30 or b.x < 0 - 30 or b.y < 0 or b.y > HEIGHT):
                 ballsShot.remove(b)
+                if(target.hit):
+                    # create new target if hit=True and ball is off screen
+                    target = Target()
+                    shotDisabled = False
             else:
                 b.updateBall()
 
-            b.checkHit(target)
+            b.checkHit(target, cannonAngle)
 
+            # hide target if hit
             if(target.hit):
-                target = Target()
+                target.radius = 0
+                shotDisabled = True
 
         # --- update screen
-        print(len(ballsShot))
         pg.display.flip()
         clock.tick(fps)
 
+def runGame():
+    global hitArray
 
-if __name__ == '__main__':
     gameIntro()
     gameLoop()
     pg.quit()
+
+if __name__ == '__main__':
+    runGame()
