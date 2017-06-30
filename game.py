@@ -214,8 +214,6 @@ def gameLoop():
         clock.tick(fps)
 
 def runGame():
-    global hitArray
-
     gameIntro()
     gameLoop()
     pg.quit()
