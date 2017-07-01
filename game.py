@@ -2,6 +2,7 @@ import pygame as pg
 import sys
 import math
 import random
+import brain
 
 pg.init()
 
@@ -103,16 +104,14 @@ class Target:
     hit = False
 
     def __init__(self):
-        self.x = random.randint(150,650)
-        self.y = random.randint(150,550)
+        self.x = random.randint(150, 650)
+        self.y = random.randint(150, 550)
         self.radius = 50
         self.hit = False
 
     def show(self):
         pg.draw.circle(screen, RED, (self.x, self.y), self.radius,0)
 
-    def hit(self):
-        self.hit = True
 
 def gameIntro():
     global screen
@@ -137,10 +136,10 @@ def gameIntro():
 
         screen.blit(introTextObj,
                     (int(WIDTH/2) - introTextObj.get_width() // 2,
-                    int(HEIGHT/2) - introTextObj.get_height() // 2))
+                     int(HEIGHT/2) - introTextObj.get_height() // 2))
         screen.blit(directionTextObj,
                     ((int(WIDTH/2) - directionTextObj.get_width() // 2,
-                    int(HEIGHT/2) - introTextObj.get_height() // 2 + 50)))
+                      int(HEIGHT/2) - introTextObj.get_height() // 2 + 50)))
 
         pg.display.update()
         clock.tick(fps)
@@ -174,7 +173,10 @@ def gameLoop():
                 if event.key == pg.K_SPACE:
                     if not shotDisabled:
                         randomIndex = random.randint(0, 3)
-                        newBall = Ball(cannonAngle, 18, colorList[randomIndex], (cannon.xTop, cannon.yTop))
+                        # newBall = Ball(cannonAngle, 18, colorList[randomIndex],
+                        #                (cannon.xTop, cannon.yTop))
+                        newBall = Ball(brain.getAngle(), 18, colorList[randomIndex],
+                                       (cannon.xTop, cannon.yTop))
                         ballsShot.append(newBall)
             if event.type == pg.KEYUP:
                 cannonAngleChange = 0
@@ -185,7 +187,7 @@ def gameLoop():
         # cannon boundries
         if(cannonAngle + cannonAngleChange <= 70 and
            cannonAngle + cannonAngleChange >= -70):
-           cannonAngle += cannonAngleChange
+            cannonAngle += cannonAngleChange
 
 
         # --- Drawing
@@ -193,9 +195,9 @@ def gameLoop():
         target.show()
 
         for b in ballsShot:
-            if(b.x > WIDTH + 30 or b.x < 0 - 30 or b.y < 0 or b.y > HEIGHT):
+            if b.x > WIDTH + 30 or b.x < 0 - 30 or b.y < 0 or b.y > HEIGHT:
                 ballsShot.remove(b)
-                if(target.hit):
+                if target.hit:
                     # create new target if hit=True and ball is off screen
                     target = Target()
                     shotDisabled = False
@@ -205,7 +207,7 @@ def gameLoop():
             b.checkHit(target, cannonAngle)
 
             # hide target if hit
-            if(target.hit):
+            if target.hit:
                 target.radius = 0
                 shotDisabled = True
 
