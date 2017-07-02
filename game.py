@@ -2,12 +2,13 @@ import pygame as pg
 import sys
 import math
 import random
-import brain
 
 pg.init()
 
 # holds x, y, angle
-hitArray = [[], [], []]
+hitArray = [[321],
+            [387],
+            [-28]]
 
 #Colors
 BLACK = (0, 0, 0)
@@ -112,22 +113,24 @@ class Target:
     def show(self):
         pg.draw.circle(screen, RED, (self.x, self.y), self.radius,0)
 
-
 def gameIntro():
     global screen
 
-    buttonPressed = False
+    playing, training = False, False
     screen.fill(LGREY)
 
-    introText = "Shoot Stuff"
-    pressText = "Press any key to play"
+    introText = "AI Cannon"
+    pressText = "'T' for training mode, 'P' for play mode"
 
-    while not buttonPressed:
+    while not playing or not training:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 sys.exit()
             if event.type == pg.KEYDOWN:
-                buttonPressed = True
+                if event.key == pg.K_t:
+                    return "training"
+                if event.key == pg.K_p:
+                    return "playing"
 
         screen.fill(LGREY)
 
@@ -173,8 +176,77 @@ def gameLoop():
                 if event.key == pg.K_SPACE:
                     if not shotDisabled:
                         randomIndex = random.randint(0, 3)
-                        # newBall = Ball(cannonAngle, 18, colorList[randomIndex],
-                        #                (cannon.xTop, cannon.yTop))
+                        newBall = Ball(cannonAngle, 18, colorList[randomIndex],
+                                       (cannon.xTop, cannon.yTop))
+                        ballsShot.append(newBall)
+            if event.type == pg.KEYUP:
+                cannonAngleChange = 0
+
+
+        # --- Game Logic
+
+        # cannon boundries
+        if(cannonAngle + cannonAngleChange <= 70 and
+           cannonAngle + cannonAngleChange >= -70):
+            cannonAngle += cannonAngleChange
+
+
+        # --- Drawing
+        cannon.drawCannon(cannonAngle)
+        target.show()
+
+        for b in ballsShot:
+            if b.x > WIDTH + 30 or b.x < 0 - 30 or b.y < 0 or b.y > HEIGHT:
+                ballsShot.remove(b)
+                if target.hit:
+                    # create new target if hit=True and ball is off screen
+                    target = Target()
+                    shotDisabled = False
+            else:
+                b.updateBall()
+
+            b.checkHit(target, cannonAngle)
+
+            # hide target if hit
+            if target.hit:
+                target.radius = 0
+                shotDisabled = True
+
+        # --- update screen
+        pg.display.flip()
+        clock.tick(fps)
+
+def cpuGameLoop():
+    import brain
+
+    
+    done = False
+
+    cannonAngle = 0
+    cannonAngleChange = 0
+    ballsShot = []
+
+    cannon = Cannon()
+    target = Target()
+
+    shotDisabled = False
+
+    #----Main Loop----#
+    while not done:
+        # clear screen
+        screen.fill(WHITE)
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                done = True
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_RIGHT:
+                    cannonAngleChange = -1
+                if event.key == pg.K_LEFT:
+                    cannonAngleChange = 1
+                if event.key == pg.K_SPACE:
+                    if not shotDisabled:
+                        randomIndex = random.randint(0, 3)
                         newBall = Ball(brain.getAngle(), 18, colorList[randomIndex],
                                        (cannon.xTop, cannon.yTop))
                         ballsShot.append(newBall)
@@ -216,8 +288,10 @@ def gameLoop():
         clock.tick(fps)
 
 def runGame():
-    gameIntro()
-    gameLoop()
+    option = gameIntro()
+    if option == "training":
+        gameLoop()
+    cpuGameLoop()
     pg.quit()
 
 if __name__ == '__main__':
