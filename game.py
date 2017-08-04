@@ -2,6 +2,7 @@ import pygame as pg
 import sys
 import math
 import random
+import brain as mind
 
 class Game:
     # holds x, y, angle
@@ -39,21 +40,21 @@ class Game:
         self.fontObj2 = pg.font.SysFont('monospace', 18, bold=True)
 
     def startGame(self):
-        playing, training = False, False
+        gameRunning = True
         self.screen.fill(self.LGREY)
 
         introText = "AI Cannon"
         pressText = "'T' for training mode, 'P' for play mode"
 
-        while not playing or not training:
+        while gameRunning:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
-                    sys.exit()
+                    gameRunning = False
                 if event.type == pg.KEYDOWN:
                     if event.key == pg.K_t:
-                        self.train()
+                        self.user_play()
                     if event.key == pg.K_p:
-                        self.play()
+                        self.cpu_play()
 
             self.screen.fill(self.LGREY)
 
@@ -70,7 +71,7 @@ class Game:
             pg.display.update()
             self.clock.tick(self.fps)
 
-    def play(self):
+    def user_play(self):
         done = False
 
         cannonAngle = 0
@@ -137,6 +138,77 @@ class Game:
             # --- update screen
             pg.display.flip()
             self.clock.tick(self.fps)
+
+    def cpu_play(self):
+        brain = mind.Brain(self) # initialize brain
+
+        done = False
+
+        cannonAngle = 0
+        cannonAngleChange = 0
+        ballsShot = []
+
+        cannon = Cannon(self)
+        target = Target(self)
+
+        shotDisabled = False
+
+        #----Main Loop----#
+        while not done:
+            # clear screen
+            self.screen.fill(self.WHITE)
+
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    done = True
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_RIGHT:
+                        cannonAngleChange = -1
+                    if event.key == pg.K_LEFT:
+                        cannonAngleChange = 1
+                    if event.key == pg.K_SPACE:
+                        if not shotDisabled:
+                            randomIndex = random.randint(0, 3)
+                            newBall = Ball(brain.getAngle(), 18, self.colorList[randomIndex],
+                                           (cannon.xTop, cannon.yTop), self)
+                            ballsShot.append(newBall)
+                if event.type == pg.KEYUP:
+                    cannonAngleChange = 0
+
+
+            # --- Game Logic
+
+            # cannon boundries
+            if(cannonAngle + cannonAngleChange <= 70 and
+               cannonAngle + cannonAngleChange >= -70):
+                cannonAngle += cannonAngleChange
+
+
+            # --- Drawing
+            cannon.drawCannon(cannonAngle)
+            target.show()
+
+            for b in ballsShot:
+                if b.x > self.WIDTH + 30 or b.x < 0 - 30 or b.y < 0 or b.y > self.HEIGHT:
+                    ballsShot.remove(b)
+                    if target.hit:
+                        # create new target if hit=True and ball is off screen
+                        target = Target(self)
+                        shotDisabled = False
+                else:
+                    b.updateBall()
+
+                b.checkHit(target, cannonAngle)
+
+                # hide target if hit
+                if target.hit:
+                    target.radius = 0
+                    shotDisabled = True
+
+            # --- update screen
+            pg.display.flip()
+            self.clock.tick(self.fps)
+
 
 
 class Ball:
