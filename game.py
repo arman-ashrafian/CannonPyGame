@@ -169,7 +169,7 @@ class Game:
                     if event.key == pg.K_SPACE:
                         if not shotDisabled:
                             randomIndex = random.randint(0, 3)
-                            newBall = Ball(brain.getAngle(), 18, self.colorList[randomIndex],
+                            newBall = Ball(brain.getAngle(target), 18, self.colorList[randomIndex],
                                            (cannon.xTop, cannon.yTop), self)
                             ballsShot.append(newBall)
                 if event.type == pg.KEYUP:

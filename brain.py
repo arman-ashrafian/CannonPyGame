@@ -3,18 +3,31 @@
 
 import numpy as np
 import scipy.linalg
+import math
 
 class Brain:
 
     def __init__(self, game):
         self.game = game
-        self.data = np.c_[game.hitArray[0],game.hitArray[1],game.hitArray[2]]
 
-        # best-fit linear plane
-        A = np.c_[self.data[:,0], self.data[:,1], np.ones(self.data.shape[0])]
-        self.C,_,_,_ = scipy.linalg.lstsq(A, self.data[:,2])    # coefficients
+    # Distance Function
+    # -- returns euclidiean distance between two points p1 and p2
+    def getDist(self, p1, p2):
+        return math.sqrt((p1[0]-p2[0])**2 -
+                         (p1[1]-p2[1])**2 -
+                         (p1[2]-p2[2])**2)
 
-
-    def getAngle(self):
-        angleGuess = self.C[0]*321 + self.C[1]*387 + self.C[2]
-        return int(angleGuess)
+    # Minimum Distance
+    # -- returns angle of nearest neighbor
+    def getAngle(self, target):
+        dist = 10000 # -- some big number
+        angle = 0
+        point = [target.x, target.y, 0]
+        print(point)
+        print(self.game.hitArray)
+        for existing_point in self.game.hitArray:
+            tempDist = self.getDist(existing_point, point)
+            if tempDist < dist:
+                dist = tempDist
+                angle = existing_point[2]
+        return angle
